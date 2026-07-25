@@ -1,79 +1,76 @@
 // ==UserScript==
 // @name         Wckbot Baidu Pan QuickLink
 // @namespace    https://github.com/jitdor
-// @version      1.0.1
+// @version      1.0.2
 // @description  Extract Baidu Pan links and access codes on Wckbot pages, then add a direct link and one-click filename copying.
 // @author       jitdor
 // @license      MIT
+// @icon         https://pan.baidu.com/favicon.ico
 // @homepageURL  https://github.com/jitdor/userscript-wckbot
 // @supportURL   https://github.com/jitdor/userscript-wckbot/issues
 // @updateURL    https://raw.githubusercontent.com/jitdor/userscript-wckbot/main/wckbot-baidu-pan-quicklink.user.js
 // @downloadURL  https://raw.githubusercontent.com/jitdor/userscript-wckbot/main/wckbot-baidu-pan-quicklink.user.js
-// @include      *://wckbot*.com/*
+// @include      /^https?:\/\/wckbot\d+\.com\//
 // @run-at       document-end
+// @noframes
 // @grant        GM_setClipboard
 // ==/UserScript==
 
 (function() {
     'use strict';
 
-    let injected = false;
+    let injectedKey = null;
+    let panel = null;
     let observer = null;
     let debounceTimer = null;
     const DEBOUNCE_INTERVAL = 1000; // ms
     let injectionTimeout = null;
 
+    // Reused across calls instead of creating a new element each time.
+    const decoderEl = document.createElement('textarea');
     function htmlDecode(str) {
-        const textarea = document.createElement('textarea');
-        textarea.innerHTML = str;
-        return textarea.value;
+        decoderEl.innerHTML = str;
+        return decoderEl.value;
+    }
+
+    // Updated regex to allow more characters in the 4-char code (including symbols like ×)
+    const LINK_CODE_RE =
+        /(https:\/\/pan\.baidu\.com\/s\/[A-Za-z0-9\-_]+)[\s\S]*?提取码[:：]?\s*([A-Za-z0-9×\-+*/.]{4})/i;
+
+    function extractFromText(text) {
+        if (!text) return null;
+        const match = htmlDecode(text).match(LINK_CODE_RE);
+        return match ? { url: match[1], code: match[2] } : null;
     }
 
     function extractFromMeta() {
         const meta = document.querySelector('meta[name="description"]');
-        if (!meta || !meta.content) return null;
-
-        // HTML decode the content first
-        const decodedContent = htmlDecode(meta.content);
-        // Updated regex to allow more characters in the 4-char code (including symbols like ×)
-        const match = decodedContent.match(
-            /(https:\/\/pan\.baidu\.com\/s\/[A-Za-z0-9\-_]+)[\s\S]*?提取码[:：]?\s*([A-Za-z0-9×\-+*/.]{4})/i
-        );
-        if (match) {
-            return { url: match[1], code: match[2] };
-        }
-        return null;
+        return meta ? extractFromText(meta.content) : null;
     }
 
     function extractFromCard() {
         const card = document.querySelector('.ripay-content .card-body');
-        if (!card) return null;
-
-        // HTML decode the innerHTML first
-        const decodedHtml = htmlDecode(card.innerHTML);
-        const match = decodedHtml.match(
-            /(https:\/\/pan\.baidu\.com\/s\/[A-Za-z0-9\-_]+)[\s\S]*?提取码[:：]?\s*([A-Za-z0-9×\-+*/.]{4})/i
-        );
-        if (match) {
-            return { url: match[1], code: match[2] };
-        }
-        return null;
+        return card ? extractFromText(card.innerHTML) : null;
     }
 
     function injectLink() {
-        if (injected) return;
-
-        let extracted = extractFromMeta();
-        if (!extracted) {
-            extracted = extractFromCard();
-        }
+        const extracted = extractFromMeta() || extractFromCard();
         if (!extracted) return;
 
-        injected = true;
+        // Re-arm: only rebuild the panel when the extracted link/code actually
+        // changes (e.g. the page swaps content client-side without a reload).
+        const key = `${extracted.url}|${extracted.code}`;
+        if (key === injectedKey) return;
+        injectedKey = key;
 
         // Stop page loading now that we got the info
         if (typeof window.stop === 'function') {
             window.stop();
+        }
+
+        if (panel) {
+            panel.remove();
+            panel = null;
         }
 
         const panBase = extracted.url;
@@ -92,29 +89,73 @@
             background: 'rgba(0,0,0,0.7)',
             color: '#fff',
             padding: '10px',
+            paddingRight: '24px',
             borderRadius: '4px',
-            zIndex: 9999,
-            maxWidth: '640px',
+            zIndex: 2147483647,
+            maxWidth: 'calc(100vw - 20px)',
             fontFamily: 'sans-serif',
             fontSize: '14px',
             cursor: 'default',
             pointerEvents: 'auto',
         });
 
+        const closeBtn = document.createElement('button');
+        closeBtn.type = 'button';
+        closeBtn.textContent = '×';
+        closeBtn.setAttribute('aria-label', 'Close');
+        Object.assign(closeBtn.style, {
+            position: 'absolute',
+            top: '2px',
+            right: '6px',
+            background: 'transparent',
+            border: 'none',
+            color: '#fff',
+            fontSize: '16px',
+            lineHeight: '1',
+            cursor: 'pointer',
+            padding: '0 4px',
+        });
+        closeBtn.addEventListener('click', () => {
+            container.remove();
+            if (panel === container) panel = null;
+        });
+
         const titleDisplay = document.createElement('div');
         titleDisplay.textContent = pageTitle;
         titleDisplay.style.fontWeight = 'bold';
         titleDisplay.style.marginBottom = '4px';
-        titleDisplay.title = 'Click to copy title.mp4';
         titleDisplay.style.cursor = 'pointer';
-        titleDisplay.addEventListener('click', () => {
+        titleDisplay.setAttribute('role', 'button');
+        titleDisplay.setAttribute('tabindex', '0');
+        titleDisplay.setAttribute('aria-label', `Copy filename ${pageTitle}.mp4`);
+
+        const statusEl = document.createElement('span');
+        Object.assign(statusEl.style, {
+            position: 'absolute',
+            width: '1px',
+            height: '1px',
+            overflow: 'hidden',
+            clip: 'rect(0 0 0 0)',
+        });
+        statusEl.setAttribute('aria-live', 'polite');
+
+        function copyTitle() {
             const textToCopy = `${pageTitle}.mp4`;
             GM_setClipboard(textToCopy);
             const orig = titleDisplay.textContent;
             titleDisplay.textContent = 'Copied: ' + textToCopy;
+            statusEl.textContent = `Copied ${textToCopy} to clipboard`;
             setTimeout(() => {
                 titleDisplay.textContent = orig;
             }, 1000);
+        }
+
+        titleDisplay.addEventListener('click', copyTitle);
+        titleDisplay.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                copyTitle();
+            }
         });
 
         const link = document.createElement('a');
@@ -138,14 +179,13 @@
             }
         });
 
+        container.appendChild(closeBtn);
         container.appendChild(titleDisplay);
+        container.appendChild(statusEl);
         container.appendChild(link);
         document.body.appendChild(container);
+        panel = container;
 
-        if (observer) {
-            observer.disconnect();
-            observer = null;
-        }
         if (injectionTimeout) {
             clearTimeout(injectionTimeout);
             injectionTimeout = null;
@@ -176,7 +216,7 @@
     });
 
     injectionTimeout = setTimeout(() => {
-        if (!injected && observer) {
+        if (!injectedKey && observer) {
             observer.disconnect();
             observer = null;
         }
