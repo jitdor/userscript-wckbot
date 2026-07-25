@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented here.
 
+## [1.0.3] - 2026-07-25
+
+- Normalize known homoglyph symbols (e.g. the multiplication sign "×") back
+  to their intended ASCII letter before building the Baidu Pan link. Some
+  pages render an access code's letters using a visually similar symbol,
+  and the raw symbol was previously sent to Baidu as-is, producing a
+  mismatched/garbled password.
+- URL-encode the access code with `encodeURIComponent` when building the
+  `?pwd=` link, instead of interpolating it raw.
+- Change the generated link's `rel` from `noopener noreferrer` to
+  `noopener` only. Suppressing the referrer entirely can read as bot-like
+  traffic to Baidu's anti-hotlink checks; `noopener` alone still prevents
+  the opened tab from accessing `window.opener`.
+
 ## [1.0.2] - 2026-07-25
 
 - Replace the broad `wckbot*.com` include pattern with an anchored
