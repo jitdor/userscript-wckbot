@@ -10,9 +10,12 @@ pages into direct, clickable links with the access code already attached.
 - Decodes HTML entities before matching the link and code.
 - Supports letters, digits, and common symbols in access codes.
 - Opens Baidu Pan with the access code in the `?pwd=` parameter.
-- Displays the page title and copies `<title>.mp4` when the title is clicked.
+- Displays the page title and copies `<title>.mp4` when the title (or Enter/Space
+  while it's focused) is activated.
 - Marks the page after the generated link is opened.
-- Stops observing the page after a match or after ten seconds.
+- Replaces the panel if the page swaps in a different link/code without a
+  full reload, and lets you dismiss it with a close button.
+- Stops observing the page after ten seconds if no link/code is ever found.
 
 ## Install
 
@@ -22,7 +25,9 @@ pages into direct, clickable links with the access code already attached.
    [raw userscript](https://raw.githubusercontent.com/jitdor/userscript-wckbot/main/wckbot-baidu-pan-quicklink.user.js).
 3. Review the script and confirm the installation in your userscript manager.
 
-The script runs only on URLs matching `*://wckbot*.com/*`.
+The script runs only on URLs matching `wckbot<number>.com` (e.g.
+`wckbot14.com`, `wckbot15.com`, `wckbot16.com`), which follows the site's
+migration naming convention while excluding unrelated or spoofed domains.
 
 ## Usage
 
