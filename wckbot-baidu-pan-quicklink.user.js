@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Wckbot Baidu Pan QuickLink
 // @namespace    https://github.com/jitdor
-// @version      1.0.2
+// @version      1.0.3
 // @description  Extract Baidu Pan links and access codes on Wckbot pages, then add a direct link and one-click filename copying.
 // @author       jitdor
 // @license      MIT
@@ -37,10 +37,24 @@
     const LINK_CODE_RE =
         /(https:\/\/pan\.baidu\.com\/s\/[A-Za-z0-9\-_]+)[\s\S]*?提取码[:：]?\s*([A-Za-z0-9×\-+*/.]{4})/i;
 
+    // Some pages render a real code character as a visually similar symbol
+    // (e.g. the multiplication sign "×" standing in for the letter "x").
+    // Baidu access codes are always plain alphanumeric, so map these back
+    // before the code is used, instead of sending the raw symbol to Baidu.
+    const CODE_HOMOGLYPHS = {
+        '×': 'x',
+        '✕': 'x',
+        '✖': 'x',
+    };
+
+    function normalizeCode(code) {
+        return code.replace(/./g, (ch) => CODE_HOMOGLYPHS[ch] || ch);
+    }
+
     function extractFromText(text) {
         if (!text) return null;
         const match = htmlDecode(text).match(LINK_CODE_RE);
-        return match ? { url: match[1], code: match[2] } : null;
+        return match ? { url: match[1], code: normalizeCode(match[2]) } : null;
     }
 
     function extractFromMeta() {
@@ -74,7 +88,7 @@
         }
 
         const panBase = extracted.url;
-        const panUrl = `${panBase}?pwd=${extracted.code}`;
+        const panUrl = `${panBase}?pwd=${encodeURIComponent(extracted.code)}`;
 
         const titleEl = document.querySelector('h1.entry-title');
         const pageTitle = titleEl
@@ -161,7 +175,9 @@
         const link = document.createElement('a');
         link.href = panUrl;
         link.target = '_blank';
-        link.rel = 'noopener noreferrer';
+        // noreferrer (not just noopener) strips the Referer header entirely,
+        // which can read as bot-like traffic to Baidu's anti-hotlink checks.
+        link.rel = 'noopener';
         link.style.color = '#0af';
         link.style.wordBreak = 'break-all';
         link.style.pointerEvents = 'auto';
