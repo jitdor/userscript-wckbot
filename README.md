@@ -19,7 +19,7 @@ pages into direct, clickable links with the access code already attached.
 1. Install a userscript manager such as
    [Tampermonkey](https://www.tampermonkey.net/).
 2. Open the
-   [raw userscript](https://raw.githubusercontent.com/jitdor/wckbot-baidu-pan-quicklink/main/wckbot-baidu-pan-quicklink.user.js).
+   [raw userscript](https://raw.githubusercontent.com/jitdor/userscript-wckbot/main/wckbot-baidu-pan-quicklink.user.js).
 3. Review the script and confirm the installation in your userscript manager.
 
 The script runs only on URLs matching `*://wckbot*.com/*`.
@@ -41,7 +41,7 @@ The script does not send data to third parties. It requests only
 
 Release artifacts are stored in `dist/`:
 
-- `wckbot-baidu-pan-quicklink-v1.0.0.zip`
+- `wckbot-baidu-pan-quicklink-v1.0.1.zip`
 - `wckbot-baidu-pan-quicklink.user.js`
 - `SHA256SUMS`
 

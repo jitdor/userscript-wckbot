@@ -1,14 +1,14 @@
 // ==UserScript==
 // @name         Wckbot Baidu Pan QuickLink
 // @namespace    https://github.com/jitdor
-// @version      1.0.0
+// @version      1.0.1
 // @description  Extract Baidu Pan links and access codes on Wckbot pages, then add a direct link and one-click filename copying.
 // @author       jitdor
 // @license      MIT
-// @homepageURL  https://github.com/jitdor/wckbot-baidu-pan-quicklink
-// @supportURL   https://github.com/jitdor/wckbot-baidu-pan-quicklink/issues
-// @updateURL    https://raw.githubusercontent.com/jitdor/wckbot-baidu-pan-quicklink/main/wckbot-baidu-pan-quicklink.user.js
-// @downloadURL  https://raw.githubusercontent.com/jitdor/wckbot-baidu-pan-quicklink/main/wckbot-baidu-pan-quicklink.user.js
+// @homepageURL  https://github.com/jitdor/userscript-wckbot
+// @supportURL   https://github.com/jitdor/userscript-wckbot/issues
+// @updateURL    https://raw.githubusercontent.com/jitdor/userscript-wckbot/main/wckbot-baidu-pan-quicklink.user.js
+// @downloadURL  https://raw.githubusercontent.com/jitdor/userscript-wckbot/main/wckbot-baidu-pan-quicklink.user.js
 // @include      *://wckbot*.com/*
 // @run-at       document-end
 // @grant        GM_setClipboard
