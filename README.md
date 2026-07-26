@@ -8,7 +8,7 @@ pages into direct, clickable links with the access code already attached.
 - Extracts a Baidu Pan URL and four-character access code from page metadata or
   the content card.
 - Decodes HTML entities before matching the link and code.
-- Supports letters, digits, and common symbols in access codes.
+- Accepts four-character alphanumeric access codes and normalizes HTML-encoded en dashes in Baidu share IDs.
 - Opens Baidu Pan with the access code in the `?pwd=` parameter.
 - Displays the page title and copies `<title>.mp4` when the title (or Enter/Space
   while it's focused) is activated.

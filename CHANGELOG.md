@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented here.
 
+## [1.0.4] - 2026-07-26
+
+- Fix Baidu share IDs truncated at an HTML-encoded en dash (`&#8211;`).
+  Accept U+2013 while extracting the URL, then normalize it back to an ASCII
+  hyphen before constructing the direct link.
+- Restrict extraction passwords to exactly four alphanumeric characters.
+
 ## [1.0.3] - 2026-07-25
 
 - Normalize known homoglyph symbols (e.g. the multiplication sign "×") back
