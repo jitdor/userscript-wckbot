@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Wckbot Baidu Pan QuickLink
 // @namespace    https://github.com/jitdor
-// @version      1.0.4
+// @version      1.0.5
 // @description  Extract Baidu Pan links and access codes on Wckbot pages, then add a direct link and one-click filename copying.
 // @author       jitdor
 // @license      MIT
@@ -53,13 +53,43 @@
         return meta ? extractFromText(meta.content) : null;
     }
 
+    function getCanonicalPanUrl(card) {
+        const anchor = card.querySelector(
+            'a[href^="https://pan.baidu.com/s/"]');
+        if (!anchor) return null;
+
+        try {
+            const url = new URL(anchor.href, window.location.href);
+            if (
+                url.protocol !== 'https:' ||
+                url.hostname !== 'pan.baidu.com' ||
+                !/^\/s\/[A-Za-z0-9_-]+$/.test(url.pathname)
+            ) {
+                return null;
+            }
+            return `${url.origin}${url.pathname}`;
+        } catch {
+            return null;
+        }
+    }
+
     function extractFromCard() {
         const card = document.querySelector('.ripay-content .card-body');
-        return card ? extractFromText(card.innerHTML) : null;
+        if (!card) return null;
+
+        const extracted = extractFromText(card.innerHTML);
+        if (!extracted) return null;
+
+        // The rendered text may replace one or more ASCII hyphens with a
+        // single en dash. Prefer the anchor target, which keeps the real ID.
+        const canonicalUrl = getCanonicalPanUrl(card);
+        return canonicalUrl
+            ? { url: canonicalUrl, code: extracted.code }
+            : extracted;
     }
 
     function injectLink() {
-        const extracted = extractFromMeta() || extractFromCard();
+        const extracted = extractFromCard() || extractFromMeta();
         if (!extracted) return;
 
         // Re-arm: only rebuild the panel when the extracted link/code actually
