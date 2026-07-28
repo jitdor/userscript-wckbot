@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented here.
 
+## [1.0.5] - 2026-07-29
+
+- Prefer the Baidu link anchor's canonical `href` from the visible content
+  card over metadata or rendered link text. This preserves share IDs where
+  Wckbot displays one en dash for two ASCII hyphens.
+- Validate canonical anchors as HTTPS `pan.baidu.com/s/<share-id>` links and
+  retain the v1.0.4 text/metadata normalization as a fallback.
+- Add regression coverage for the double-hyphen share ID and fallback paths.
+
 ## [1.0.4] - 2026-07-26
 
 - Fix Baidu share IDs truncated at an HTML-encoded en dash (`&#8211;`).
