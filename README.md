@@ -46,7 +46,7 @@ The script does not send data to third parties. It requests only
 
 Release artifacts are stored in `dist/`:
 
-- `wckbot-baidu-pan-quicklink-v1.0.3.zip`
+- `wckbot-baidu-pan-quicklink-v1.0.6.zip`
 - `wckbot-baidu-pan-quicklink.user.js`
 - `SHA256SUMS`
 
