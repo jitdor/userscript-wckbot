@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented here.
 
+## [1.0.7] - 2026-08-06
+
+- Fix extraction failing on older posts that link to plain-HTTP
+  `http://pan.baidu.com/s/...` and label the access code `密码` instead
+  of `提取码`. Accept both schemes and both labels while matching.
+- Upgrade extracted `http://` links (from rendered text and from
+  canonical card anchors) to `https://` before building the `?pwd=`
+  direct link.
+- Add regression coverage for the HTTP/`密码` card, the meta-description
+  fallback, and http-anchor normalization.
+
 ## [1.0.6] - 2026-08-06
 
 - Fix extraction failing entirely when the access code contains a
