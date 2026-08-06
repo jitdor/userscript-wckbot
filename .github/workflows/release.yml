@@ -45,7 +45,9 @@ jobs:
           fetch-depth: 0
 
       - name: Run tests
-        run: node --test tests/
+        # Node 22 treats --test arguments as globs, so a bare directory
+        # resolves as a module path and fails before any test runs.
+        run: node --test "tests/**/*.test.mjs"
 
       - name: Verify packaged artifacts match the tag
         env:
