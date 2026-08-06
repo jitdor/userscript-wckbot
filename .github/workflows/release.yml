@@ -7,8 +7,12 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Existing tag to publish a release for (e.g. v1.0.7)'
+        description: 'Tag to publish a release for (e.g. v1.0.7)'
         required: true
+      ref:
+        description: 'Commit-ish to release, used to create the tag when it does not exist yet'
+        required: false
+        default: 'main'
 
 permissions:
   contents: write
@@ -22,15 +26,20 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             tag='${{ inputs.tag }}'
+            # The tag may not exist yet; release from the requested
+            # commit-ish and let the publish step create the tag there.
+            ref='${{ inputs.ref }}'
           else
             tag="${GITHUB_REF#refs/tags/}"
+            ref="$tag"
           fi
           echo "tag=${tag}" >> "$GITHUB_OUTPUT"
           echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+          echo "ref=${ref}" >> "$GITHUB_OUTPUT"
 
       - uses: actions/checkout@v4
         with:
-          ref: ${{ steps.tag.outputs.tag }}
+          ref: ${{ steps.tag.outputs.ref }}
           # Full history and tags so the notes can span every version
           # released since the previous tag.
           fetch-depth: 0
@@ -69,8 +78,9 @@ jobs:
 
           # Cover every changelog entry back to the previously tagged
           # release, so versions that were bumped without being tagged
-          # still appear somewhere.
-          previous=$(git describe --tags --abbrev=0 "${TAG}^" 2>/dev/null || echo '')
+          # still appear somewhere. Excluding the tag being released
+          # gives the same answer whether or not it exists yet.
+          previous=$(git describe --tags --abbrev=0 --exclude "$TAG" HEAD 2>/dev/null || echo '')
           echo "Previous release tag: ${previous:-none}"
 
           {
@@ -100,7 +110,11 @@ jobs:
         run: |
           set -euo pipefail
 
+          # --target only applies when the tag does not exist yet, in
+          # which case it is created at the commit that was verified
+          # above rather than at whatever the default branch now points to.
           gh release create "$TAG" \
+            --target "$(git rev-parse HEAD)" \
             --title "Wckbot Baidu Pan QuickLink $TAG" \
             --notes-file release-notes.md \
             "dist/wckbot-baidu-pan-quicklink.user.js" \
