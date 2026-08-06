@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 const LINK_CODE_RE =
-    /(https:\/\/pan\.baidu\.com\/s\/[A-Za-z0-9_\-\u2013]+)[\s\S]*?提取码[:：]?\s*([A-Za-z0-9×✕✖]{4})/i;
+    /(https?:\/\/pan\.baidu\.com\/s\/[A-Za-z0-9_\-\u2013]+)[\s\S]*?(?:提取码|密码)[:：]?\s*([A-Za-z0-9×✕✖]{4})/i;
 
 function htmlDecode(text) {
     return text.replace(/&#(\d+);/g, (_, value) =>
@@ -20,7 +20,9 @@ function normalizeCode(code) {
 }
 
 function normalizePanUrl(url) {
-    return url.replace(/\u2013/g, '-');
+    return url
+        .replace(/^http:/i, 'https:')
+        .replace(/\u2013/g, '-');
 }
 
 function extractFromText(text) {
@@ -33,19 +35,20 @@ function extractFromText(text) {
 
 function getCanonicalPanUrl(card) {
     const anchor = card.querySelector(
-        'a[href^="https://pan.baidu.com/s/"]');
+        'a[href^="https://pan.baidu.com/s/"], ' +
+        'a[href^="http://pan.baidu.com/s/"]');
     if (!anchor) return null;
 
     try {
         const url = new URL(anchor.href);
         if (
-            url.protocol !== 'https:' ||
+            (url.protocol !== 'https:' && url.protocol !== 'http:') ||
             url.hostname !== 'pan.baidu.com' ||
             !/^\/s\/[A-Za-z0-9_-]+$/.test(url.pathname)
         ) {
             return null;
         }
-        return `${url.origin}${url.pathname}`;
+        return `https://pan.baidu.com${url.pathname}`;
     } catch {
         return null;
     }
@@ -155,4 +158,35 @@ test('normalizes alternate multiplication-cross homoglyphs', () => {
             code: 'ax9z',
         });
     }
+});
+
+test('extracts a plain-HTTP link labeled 密码 and upgrades it to HTTPS', () => {
+    const card = makeCard(
+        ' 链接：http://pan.baidu.com/s/1hs9NgEg 密码：717p<br />漂亮, 丝袜');
+
+    assert.deepEqual(extractFromCard(card), {
+        url: 'https://pan.baidu.com/s/1hs9NgEg',
+        code: '717p',
+    });
+});
+
+test('extracts the 密码-labeled code from meta description text', () => {
+    const extracted = extractFromText(
+        '16分钟 1280*720 MP4 解压密码QQ690680440 隐藏内容 链接：http://pan.baidu.com/s/1hs9NgEg 密码：717p漂亮, 丝袜');
+
+    assert.deepEqual(extracted, {
+        url: 'https://pan.baidu.com/s/1hs9NgEg',
+        code: '717p',
+    });
+});
+
+test('normalizes an http canonical anchor to https', () => {
+    const card = makeCard(
+        ' 链接：http://pan.baidu.com/s/1hs9NgEg 密码：717p',
+        'http://pan.baidu.com/s/1hs9NgEg');
+
+    assert.deepEqual(extractFromCard(card), {
+        url: 'https://pan.baidu.com/s/1hs9NgEg',
+        code: '717p',
+    });
 });
