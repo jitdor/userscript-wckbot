@@ -1,0 +1,107 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to publish a release for (e.g. v1.0.7)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            tag='${{ inputs.tag }}'
+          else
+            tag="${GITHUB_REF#refs/tags/}"
+          fi
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.tag.outputs.tag }}
+          # Full history and tags so the notes can span every version
+          # released since the previous tag.
+          fetch-depth: 0
+
+      - name: Run tests
+        run: node --test tests/
+
+      - name: Verify packaged artifacts match the tag
+        env:
+          VERSION: ${{ steps.tag.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          declared=$(sed -n 's|^// @version  *||p' wckbot-baidu-pan-quicklink.user.js)
+          if [ "$declared" != "$VERSION" ]; then
+            echo "::error::@version is $declared but the tag says $VERSION"
+            exit 1
+          fi
+
+          if ! diff -q wckbot-baidu-pan-quicklink.user.js \
+                      dist/wckbot-baidu-pan-quicklink.user.js; then
+            echo "::error::dist/ script is out of sync with the repository root"
+            exit 1
+          fi
+
+          # The zip is the @downloadURL target's companion; a stale one would
+          # ship an older script to anyone downloading the release.
+          (cd dist && sha256sum -c SHA256SUMS)
+
+      - name: Build release notes
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+          VERSION: ${{ steps.tag.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          # Cover every changelog entry back to the previously tagged
+          # release, so versions that were bumped without being tagged
+          # still appear somewhere.
+          previous=$(git describe --tags --abbrev=0 "${TAG}^" 2>/dev/null || echo '')
+          echo "Previous release tag: ${previous:-none}"
+
+          {
+            awk -v start="## [$VERSION]" -v stop="## [${previous#v}]" '
+              index($0, start) == 1 { found = 1; print; next }
+              found && stop != "## []" && index($0, stop) == 1 { exit }
+              found { print }
+            ' CHANGELOG.md
+
+            echo '### Install'
+            echo
+            echo 'Install the attached `wckbot-baidu-pan-quicklink.user.js`, or use the'
+            echo '[raw userscript](https://raw.githubusercontent.com/jitdor/userscript-wckbot/main/wckbot-baidu-pan-quicklink.user.js).'
+            echo
+            echo '### SHA-256'
+            echo
+            echo '```text'
+            cat dist/SHA256SUMS
+            echo '```'
+          } > release-notes.md
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.tag }}
+          VERSION: ${{ steps.tag.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          gh release create "$TAG" \
+            --title "Wckbot Baidu Pan QuickLink $TAG" \
+            --notes-file release-notes.md \
+            "dist/wckbot-baidu-pan-quicklink.user.js" \
+            "dist/wckbot-baidu-pan-quicklink-v${VERSION}.zip"
