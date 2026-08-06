@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented here.
 
+## [1.0.6] - 2026-08-06
+
+- Fix extraction failing entirely when the access code contains a
+  multiplication-sign homoglyph (e.g. `28x4` rendered as `28&#215;4` by
+  WordPress texturization). v1.0.4's strict alphanumeric code pattern
+  removed the v1.0.3 homoglyph handling, so such pages showed no overlay.
+- Accept `×`, `✕`, and `✖` while matching the four-character code, then
+  normalize them back to the ASCII letter `x` before building the
+  `?pwd=` direct link, keeping the code otherwise restricted to exactly
+  four characters.
+- Add regression coverage for homoglyph codes in the content card, the
+  meta description, and the generated direct link.
+
 ## [1.0.5] - 2026-07-29
 
 - Prefer the Baidu link anchor's canonical `href` from the visible content

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Wckbot Baidu Pan QuickLink
 // @namespace    https://github.com/jitdor
-// @version      1.0.3
+// @version      1.0.6
 // @description  Extract Baidu Pan links and access codes on Wckbot pages, then add a direct link and one-click filename copying.
 // @author       jitdor
 // @license      MIT
@@ -33,14 +33,16 @@
         return decoderEl.value;
     }
 
-    // Updated regex to allow more characters in the 4-char code (including symbols like ×)
+    // Wckbot can replace an ASCII hyphen inside a Baidu share ID with the
+    // typographic en dash U+2013 (for example, by rendering &#8211;),
+    // and an "x" between digits in an access code with the
+    // multiplication sign U+00D7 (for example, 28x4 rendered as
+    // 28&#215;4).
     const LINK_CODE_RE =
-        /(https:\/\/pan\.baidu\.com\/s\/[A-Za-z0-9\-_]+)[\s\S]*?提取码[:：]?\s*([A-Za-z0-9×\-+*/.]{4})/i;
+        /(https:\/\/pan\.baidu\.com\/s\/[A-Za-z0-9_\-\u2013]+)[\s\S]*?提取码[:：]?\s*([A-Za-z0-9×✕✖]{4})/i;
 
-    // Some pages render a real code character as a visually similar symbol
-    // (e.g. the multiplication sign "×" standing in for the letter "x").
-    // Baidu access codes are always plain alphanumeric, so map these back
-    // before the code is used, instead of sending the raw symbol to Baidu.
+    // Baidu access codes are always plain alphanumeric, so map
+    // substituted symbols back before the code is used.
     const CODE_HOMOGLYPHS = {
         '×': 'x',
         '✕': 'x',
@@ -51,10 +53,16 @@
         return code.replace(/./g, (ch) => CODE_HOMOGLYPHS[ch] || ch);
     }
 
+    function normalizePanUrl(url) {
+        return url.replace(/\u2013/g, '-');
+    }
+
     function extractFromText(text) {
         if (!text) return null;
         const match = htmlDecode(text).match(LINK_CODE_RE);
-        return match ? { url: match[1], code: normalizeCode(match[2]) } : null;
+        return match
+            ? { url: normalizePanUrl(match[1]), code: normalizeCode(match[2]) }
+            : null;
     }
 
     function extractFromMeta() {
@@ -62,13 +70,43 @@
         return meta ? extractFromText(meta.content) : null;
     }
 
+    function getCanonicalPanUrl(card) {
+        const anchor = card.querySelector(
+            'a[href^="https://pan.baidu.com/s/"]');
+        if (!anchor) return null;
+
+        try {
+            const url = new URL(anchor.href, window.location.href);
+            if (
+                url.protocol !== 'https:' ||
+                url.hostname !== 'pan.baidu.com' ||
+                !/^\/s\/[A-Za-z0-9_-]+$/.test(url.pathname)
+            ) {
+                return null;
+            }
+            return `${url.origin}${url.pathname}`;
+        } catch {
+            return null;
+        }
+    }
+
     function extractFromCard() {
         const card = document.querySelector('.ripay-content .card-body');
-        return card ? extractFromText(card.innerHTML) : null;
+        if (!card) return null;
+
+        const extracted = extractFromText(card.innerHTML);
+        if (!extracted) return null;
+
+        // The rendered text may replace one or more ASCII hyphens with a
+        // single en dash. Prefer the anchor target, which keeps the real ID.
+        const canonicalUrl = getCanonicalPanUrl(card);
+        return canonicalUrl
+            ? { url: canonicalUrl, code: extracted.code }
+            : extracted;
     }
 
     function injectLink() {
-        const extracted = extractFromMeta() || extractFromCard();
+        const extracted = extractFromCard() || extractFromMeta();
         if (!extracted) return;
 
         // Re-arm: only rebuild the panel when the extracted link/code actually
