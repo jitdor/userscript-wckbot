@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Wckbot Baidu Pan QuickLink
 // @namespace    https://github.com/jitdor
-// @version      1.0.5
+// @version      1.0.6
 // @description  Extract Baidu Pan links and access codes on Wckbot pages, then add a direct link and one-click filename copying.
 // @author       jitdor
 // @license      MIT
@@ -34,9 +34,24 @@
     }
 
     // Wckbot can replace an ASCII hyphen inside a Baidu share ID with the
-    // typographic en dash U+2013 (for example, by rendering &#8211;).
+    // typographic en dash U+2013 (for example, by rendering &#8211;),
+    // and an "x" between digits in an access code with the
+    // multiplication sign U+00D7 (for example, 28x4 rendered as
+    // 28&#215;4).
     const LINK_CODE_RE =
-        /(https:\/\/pan\.baidu\.com\/s\/[A-Za-z0-9_\-\u2013]+)[\s\S]*?提取码[:：]?\s*([A-Za-z0-9]{4})/i;
+        /(https:\/\/pan\.baidu\.com\/s\/[A-Za-z0-9_\-\u2013]+)[\s\S]*?提取码[:：]?\s*([A-Za-z0-9×✕✖]{4})/i;
+
+    // Baidu access codes are always plain alphanumeric, so map
+    // substituted symbols back before the code is used.
+    const CODE_HOMOGLYPHS = {
+        '×': 'x',
+        '✕': 'x',
+        '✖': 'x',
+    };
+
+    function normalizeCode(code) {
+        return code.replace(/./g, (ch) => CODE_HOMOGLYPHS[ch] || ch);
+    }
 
     function normalizePanUrl(url) {
         return url.replace(/\u2013/g, '-');
@@ -45,7 +60,9 @@
     function extractFromText(text) {
         if (!text) return null;
         const match = htmlDecode(text).match(LINK_CODE_RE);
-        return match ? { url: normalizePanUrl(match[1]), code: match[2] } : null;
+        return match
+            ? { url: normalizePanUrl(match[1]), code: normalizeCode(match[2]) }
+            : null;
     }
 
     function extractFromMeta() {
