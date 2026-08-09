@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Wckbot Baidu Pan QuickLink
 // @namespace    https://github.com/jitdor
-// @version      1.0.7
+// @version      1.0.8
 // @description  Extract Baidu Pan links and access codes on Wckbot pages, then add a direct link and one-click filename copying.
 // @author       jitdor
 // @license      MIT
@@ -21,10 +21,55 @@
 
     let injectedKey = null;
     let panel = null;
+    let purchasePanel = null;
+    let purchaseButtonRef = null;
     let observer = null;
     let debounceTimer = null;
     const DEBOUNCE_INTERVAL = 1000; // ms
     let injectionTimeout = null;
+
+    // Shared chrome for the fixed, always-visible panels this script injects
+    // (the extracted Baidu Pan link, and the pinned purchase button).
+    function createPanel(onClose) {
+        const container = document.createElement('div');
+        Object.assign(container.style, {
+            position: 'fixed',
+            top: '10px',
+            left: '10px',
+            background: 'rgba(0,0,0,0.7)',
+            color: '#fff',
+            padding: '10px',
+            paddingRight: '24px',
+            borderRadius: '4px',
+            zIndex: 2147483647,
+            maxWidth: 'calc(100vw - 20px)',
+            fontFamily: 'sans-serif',
+            fontSize: '14px',
+            cursor: 'default',
+            pointerEvents: 'auto',
+        });
+
+        const closeBtn = document.createElement('button');
+        closeBtn.type = 'button';
+        closeBtn.textContent = '×';
+        closeBtn.setAttribute('aria-label', 'Close');
+        Object.assign(closeBtn.style, {
+            position: 'absolute',
+            top: '2px',
+            right: '6px',
+            background: 'transparent',
+            border: 'none',
+            color: '#fff',
+            fontSize: '16px',
+            lineHeight: '1',
+            cursor: 'pointer',
+            padding: '0 4px',
+        });
+        closeBtn.addEventListener('click', onClose);
+
+        container.appendChild(closeBtn);
+        return container;
+    }
 
     // Reused across calls instead of creating a new element each time.
     const decoderEl = document.createElement('textarea');
@@ -137,41 +182,15 @@
             ? titleEl.textContent.trim()
             : document.title.trim();
 
-        const container = document.createElement('div');
-        Object.assign(container.style, {
-            position: 'fixed',
-            top: '10px',
-            left: '10px',
-            background: 'rgba(0,0,0,0.7)',
-            color: '#fff',
-            padding: '10px',
-            paddingRight: '24px',
-            borderRadius: '4px',
-            zIndex: 2147483647,
-            maxWidth: 'calc(100vw - 20px)',
-            fontFamily: 'sans-serif',
-            fontSize: '14px',
-            cursor: 'default',
-            pointerEvents: 'auto',
-        });
+        // The pan link panel supersedes the pinned purchase button: content
+        // is unlocked, so there's nothing left to buy.
+        if (purchasePanel) {
+            purchasePanel.remove();
+            purchasePanel = null;
+            purchaseButtonRef = null;
+        }
 
-        const closeBtn = document.createElement('button');
-        closeBtn.type = 'button';
-        closeBtn.textContent = '×';
-        closeBtn.setAttribute('aria-label', 'Close');
-        Object.assign(closeBtn.style, {
-            position: 'absolute',
-            top: '2px',
-            right: '6px',
-            background: 'transparent',
-            border: 'none',
-            color: '#fff',
-            fontSize: '16px',
-            lineHeight: '1',
-            cursor: 'pointer',
-            padding: '0 4px',
-        });
-        closeBtn.addEventListener('click', () => {
+        const container = createPanel(() => {
             container.remove();
             if (panel === container) panel = null;
         });
@@ -237,7 +256,6 @@
             }
         });
 
-        container.appendChild(closeBtn);
         container.appendChild(titleDisplay);
         container.appendChild(statusEl);
         container.appendChild(link);
@@ -250,21 +268,89 @@
         }
     }
 
+    // Locked posts bury the "购买本内容" (purchase) button below a long
+    // block of purchase instructions. Pin a copy of it in the same spot the
+    // extracted Baidu Pan link uses, so it stays reachable without scrolling.
+    function findPayButton() {
+        return document.querySelector('.ripay-content .click-pay-post');
+    }
+
+    function removePurchasePanel() {
+        if (purchasePanel) {
+            purchasePanel.remove();
+            purchasePanel = null;
+        }
+        purchaseButtonRef = null;
+    }
+
+    function injectPurchaseButton() {
+        // The content is already unlocked; nothing left to buy.
+        if (panel) {
+            removePurchasePanel();
+            return;
+        }
+
+        const payButton = findPayButton();
+        if (!payButton) {
+            removePurchasePanel();
+            return;
+        }
+
+        // Already pinned for this exact button; leave the panel as-is
+        // (e.g. don't reset it on every unrelated DOM mutation).
+        if (payButton === purchaseButtonRef && purchasePanel && purchasePanel.isConnected) {
+            return;
+        }
+        purchaseButtonRef = payButton;
+
+        if (purchasePanel) {
+            purchasePanel.remove();
+            purchasePanel = null;
+        }
+
+        const container = createPanel(() => {
+            container.remove();
+            if (purchasePanel === container) purchasePanel = null;
+        });
+
+        const pinnedButton = document.createElement('button');
+        pinnedButton.type = 'button';
+        pinnedButton.innerHTML = payButton.innerHTML;
+        // Drop the "click-pay-post" class so the site's own delegated click
+        // handler doesn't also fire directly on this pinned copy; forwarding
+        // a real click to the original button below covers that instead.
+        pinnedButton.className = payButton.className
+            .split(/\s+/)
+            .filter((cls) => cls && cls !== 'click-pay-post')
+            .join(' ');
+        pinnedButton.style.pointerEvents = 'auto';
+        pinnedButton.addEventListener('click', () => {
+            payButton.click();
+        });
+
+        container.appendChild(pinnedButton);
+        document.body.appendChild(container);
+        purchasePanel = container;
+    }
+
     function scheduleInjection() {
         if (debounceTimer) {
             clearTimeout(debounceTimer);
         }
         debounceTimer = setTimeout(() => {
             injectLink();
+            injectPurchaseButton();
         }, DEBOUNCE_INTERVAL);
     }
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
             injectLink();
+            injectPurchaseButton();
         });
     } else {
         injectLink();
+        injectPurchaseButton();
     }
 
     observer = new MutationObserver(scheduleInjection);
@@ -274,7 +360,9 @@
     });
 
     injectionTimeout = setTimeout(() => {
-        if (!injectedKey && observer) {
+        // Keep watching if a purchase button is pinned: buying can swap the
+        // hidden content in via AJAX without a full page reload.
+        if (!injectedKey && !purchaseButtonRef && observer) {
             observer.disconnect();
             observer = null;
         }

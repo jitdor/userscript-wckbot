@@ -15,7 +15,11 @@ pages into direct, clickable links with the access code already attached.
 - Marks the page after the generated link is opened.
 - Replaces the panel if the page swaps in a different link/code without a
   full reload, and lets you dismiss it with a close button.
-- Stops observing the page after ten seconds if no link/code is ever found.
+- On locked posts, pins a copy of the "购买本内容" (purchase) button in the
+  same fixed panel so it's reachable without scrolling past the purchase
+  instructions.
+- Stops observing the page after ten seconds if no link/code is ever found
+  and no purchase button is pinned.
 
 ## Install
 
@@ -37,6 +41,9 @@ found, a panel appears in the upper-left corner:
 - Click the title to copy the filename as `<page title>.mp4`.
 - Click the Baidu Pan link to open it with the access code filled in.
 
+On a locked post, the same corner instead pins the purchase button until
+you buy the content, at which point the pan link panel takes over.
+
 ## Privacy and permissions
 
 The script does not send data to third parties. It requests only
@@ -46,7 +53,7 @@ The script does not send data to third parties. It requests only
 
 Release artifacts are stored in `dist/`:
 
-- `wckbot-baidu-pan-quicklink-v1.0.7.zip`
+- `wckbot-baidu-pan-quicklink-v1.0.8.zip`
 - `wckbot-baidu-pan-quicklink.user.js`
 - `SHA256SUMS`
 
