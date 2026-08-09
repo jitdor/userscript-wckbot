@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented here.
 
+## [1.0.8] - 2026-08-09
+
+- Pin a copy of the "购买本内容" (purchase) button in the same fixed
+  top-left panel used for the extracted Baidu Pan link, so it stays
+  visible without scrolling down through the purchase instructions on
+  locked posts. Clicking the pinned copy forwards a real click to the
+  original button, preserving the site's own purchase handler.
+- Hide the pinned purchase panel once the Baidu Pan link panel appears
+  (content already unlocked), and keep observing the page past the
+  10-second cutoff while a purchase button is pinned, in case buying
+  swaps in the unlocked content via AJAX without a full reload.
+- Extract the panel chrome (fixed container + close button) shared by
+  both panels into one helper.
+
 ## [1.0.7] - 2026-08-06
 
 - Fix extraction failing on older posts that link to plain-HTTP
