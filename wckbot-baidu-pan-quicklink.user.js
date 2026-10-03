@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Wckbot Baidu Pan QuickLink
 // @namespace    https://github.com/jitdor
-// @version      1.0.8
+// @version      1.0.9
 // @description  Extract Baidu Pan links and access codes on Wckbot pages, then add a direct link and one-click filename copying.
 // @author       jitdor
 // @license      MIT
@@ -27,6 +27,7 @@
     let debounceTimer = null;
     const DEBOUNCE_INTERVAL = 1000; // ms
     let injectionTimeout = null;
+    let cancelBalancePayment = null;
 
     // Shared chrome for the fixed, always-visible panels this script injects
     // (the extracted Baidu Pan link, and the pinned purchase button).
@@ -182,6 +183,8 @@
             ? titleEl.textContent.trim()
             : document.title.trim();
 
+        if (cancelBalancePayment) cancelBalancePayment();
+
         // The pan link panel supersedes the pinned purchase button: content
         // is unlocked, so there's nothing left to buy.
         if (purchasePanel) {
@@ -275,6 +278,54 @@
         return document.querySelector('.ripay-content .click-pay-post');
     }
 
+    // Only arm balance payment after the user activates the pinned purchase
+    // button. The site's popup may be inserted asynchronously or revealed by
+    // changing an existing element's class/style.
+    function purchaseWithBalance(payButton) {
+        if (cancelBalancePayment) return;
+
+        function stopWaiting() {
+            paymentObserver.disconnect();
+            clearTimeout(paymentTimeout);
+            cancelBalancePayment = null;
+        }
+
+        function clickBalancePayment() {
+            if (cancelBalancePayment !== stopWaiting) return;
+            const balanceOption = Array.from(document.querySelectorAll(
+                '#iconpay.pay-item[data-type="99"]')).find((option) => {
+                const visibility = window.getComputedStyle(option).visibility;
+                return option.textContent.trim() === '余额支付' &&
+                    option.getClientRects().length > 0 &&
+                    visibility !== 'hidden' && visibility !== 'collapse';
+            });
+            if (!balanceOption) return;
+
+            // Disconnect before clicking: the site's handler may mutate the
+            // popup, and must never cause another automatic payment click.
+            stopWaiting();
+            balanceOption.click();
+        }
+
+        const paymentObserver = new MutationObserver(clickBalancePayment);
+        const paymentTimeout = setTimeout(stopWaiting, 10000);
+        cancelBalancePayment = stopWaiting;
+        paymentObserver.observe(document.body, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['class', 'style', 'hidden'],
+        });
+
+        try {
+            payButton.click();
+            clickBalancePayment();
+        } catch (error) {
+            stopWaiting();
+            throw error;
+        }
+    }
+
     function removePurchasePanel() {
         if (purchasePanel) {
             purchasePanel.remove();
@@ -309,6 +360,7 @@
         }
 
         const container = createPanel(() => {
+            if (cancelBalancePayment) cancelBalancePayment();
             container.remove();
             if (purchasePanel === container) purchasePanel = null;
         });
@@ -325,7 +377,7 @@
             .join(' ');
         pinnedButton.style.pointerEvents = 'auto';
         pinnedButton.addEventListener('click', () => {
-            payButton.click();
+            purchaseWithBalance(payButton);
         });
 
         container.appendChild(pinnedButton);

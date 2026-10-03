@@ -18,6 +18,9 @@ pages into direct, clickable links with the access code already attached.
 - On locked posts, pins a copy of the "购买本内容" (purchase) button in the
   same fixed panel so it's reachable without scrolling past the purchase
   instructions.
+- Clicking the pinned purchase button automatically clicks the visible
+  "余额支付" option when the site's payment popup appears, using your site
+  balance. It waits up to ten seconds and clicks the option only once.
 - Stops observing the page after ten seconds if no link/code is ever found
   and no purchase button is pinned.
 
@@ -42,7 +45,10 @@ found, a panel appears in the upper-left corner:
 - Click the Baidu Pan link to open it with the access code filled in.
 
 On a locked post, the same corner instead pins the purchase button until
-you buy the content, at which point the pan link panel takes over.
+you buy the content, at which point the pan link panel takes over. Clicking
+that pinned button also selects "余额支付" automatically in the site's popup;
+only click it when you intend to pay using your site balance. Closing the
+floating panel cancels a pending automatic selection.
 
 ## Privacy and permissions
 
@@ -53,7 +59,7 @@ The script does not send data to third parties. It requests only
 
 Release artifacts are stored in `dist/`:
 
-- `wckbot-baidu-pan-quicklink-v1.0.8.zip`
+- `wckbot-baidu-pan-quicklink-v1.0.9.zip`
 - `wckbot-baidu-pan-quicklink.user.js`
 - `SHA256SUMS`
 

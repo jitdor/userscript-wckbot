@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here.
 
+## [1.0.9] - 2026-10-04
+
+- After clicking the pinned "购买本内容" button, automatically click the
+  visible "余额支付" option (`#iconpay.pay-item[data-type="99"]`) once.
+- Wait for asynchronously inserted or revealed payment popups for up to
+  ten seconds. Ignore hidden options and unrelated payment methods, prevent
+  overlapping attempts, and cancel pending selection when the floating
+  panel is closed or the content unlocks.
+- Add regression coverage that executes the userscript's purchase flow.
+
 ## [1.0.8] - 2026-08-09
 
 - Pin a copy of the "购买本内容" (purchase) button in the same fixed
