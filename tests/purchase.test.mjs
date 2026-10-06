@@ -139,6 +139,10 @@ function setup() {
             this.mutate();
             this.advance(1000);
         },
+        panLink() {
+            return descendants(body).find((element) =>
+                element.tagName === 'a' && typeof element.href === 'string');
+        },
     };
 }
 
@@ -235,4 +239,14 @@ test('unlocking the content cancels pending balance payment', () => {
     const option = page.option();
     page.mutate();
     assert.equal(option.clicks, 0);
+});
+
+test('the extracted pan link navigates the current tab', () => {
+    const page = setup();
+    page.unlock();
+    const link = page.panLink();
+    assert.ok(link, 'The actual userscript must inject the pan link panel once unlocked');
+    assert.equal(link.href, 'https://pan.baidu.com/s/1test?pwd=ab12');
+    assert.equal(link.target, undefined);
+    assert.equal(link.attributes.target, undefined);
 });

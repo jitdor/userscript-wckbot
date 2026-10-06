@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## [1.0.10] - 2026-10-06
+
+- Open the generated Baidu Pan link (with the `?pwd=` access code) in the
+  current tab instead of a new one when it is clicked in the floating panel.
+- Add regression coverage for the pan link panel's navigation target.
+
 ## [1.0.9] - 2026-10-04
 
 - After clicking the pinned "购买本内容" button, automatically click the
