@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Wckbot Baidu Pan QuickLink
 // @namespace    https://github.com/jitdor
-// @version      1.0.9
+// @version      1.0.10
 // @description  Extract Baidu Pan links and access codes on Wckbot pages, then add a direct link and one-click filename copying.
 // @author       jitdor
 // @license      MIT
@@ -238,15 +238,16 @@
 
         const link = document.createElement('a');
         link.href = panUrl;
-        link.target = '_blank';
-        // noreferrer (not just noopener) strips the Referer header entirely,
-        // which can read as bot-like traffic to Baidu's anti-hotlink checks.
-        link.rel = 'noopener';
+        // Navigate this tab rather than opening a new one. No rel=noreferrer
+        // either: stripping the Referer header entirely can read as bot-like
+        // traffic to Baidu's anti-hotlink checks.
         link.style.color = '#0af';
         link.style.wordBreak = 'break-all';
         link.style.pointerEvents = 'auto';
         link.textContent = panBase;
 
+        // Mark the page before navigating away so the tick is still there if
+        // the user comes back to this page from Baidu Pan.
         link.addEventListener('click', () => {
             if (!container.dataset.clicked) {
                 container.dataset.clicked = 'true';

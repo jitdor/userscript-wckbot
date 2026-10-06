@@ -9,7 +9,8 @@ pages into direct, clickable links with the access code already attached.
   or page metadata, preferring the card's canonical link target when available.
 - Decodes HTML entities before matching the link and code.
 - Accepts four-character alphanumeric access codes and normalizes HTML-encoded en dashes in Baidu share IDs.
-- Opens Baidu Pan with the access code in the `?pwd=` parameter.
+- Opens Baidu Pan in the current tab with the access code in the `?pwd=`
+  parameter.
 - Displays the page title and copies `<title>.mp4` when the title (or Enter/Space
   while it's focused) is activated.
 - Marks the page after the generated link is opened.
@@ -42,7 +43,8 @@ Visit a supported Wckbot content page. When a Baidu Pan link and access code are
 found, a panel appears in the upper-left corner:
 
 - Click the title to copy the filename as `<page title>.mp4`.
-- Click the Baidu Pan link to open it with the access code filled in.
+- Click the Baidu Pan link to open it in the same tab with the access code
+  filled in.
 
 On a locked post, the same corner instead pins the purchase button until
 you buy the content, at which point the pan link panel takes over. Clicking
@@ -59,7 +61,7 @@ The script does not send data to third parties. It requests only
 
 Release artifacts are stored in `dist/`:
 
-- `wckbot-baidu-pan-quicklink-v1.0.9.zip`
+- `wckbot-baidu-pan-quicklink-v1.0.10.zip`
 - `wckbot-baidu-pan-quicklink.user.js`
 - `SHA256SUMS`
 
