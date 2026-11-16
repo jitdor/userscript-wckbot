@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here.
 
+## [1.0.11] - 2026-11-16
+
+- Fix the panel's Baidu Pan link pointing at a non-existent share when the
+  post has no link anchor and the share ID contains `--`. WordPress renders
+  `--` as an en dash (`&#8211;`), which was mapped back to a single hyphen
+  (e.g. `13mRV9TZ3jtxJf7P8Z--DPQ` became `13mRV9TZ3jtxJf7P8Z-DPQ`). En dashes
+  now map back to `--` and em dashes (`&#8212;`, from `---`) to `---`.
+- Add regression coverage for the card text, meta description and em-dash
+  fallbacks.
+
 ## [1.0.10] - 2026-10-06
 
 - Open the generated Baidu Pan link (with the `?pwd=` access code) in the
