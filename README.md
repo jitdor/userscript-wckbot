@@ -8,7 +8,8 @@ pages into direct, clickable links with the access code already attached.
 - Extracts a Baidu Pan URL and four-character access code from the content card
   or page metadata, preferring the card's canonical link target when available.
 - Decodes HTML entities before matching the link and code.
-- Accepts four-character alphanumeric access codes and normalizes HTML-encoded en dashes in Baidu share IDs.
+- Accepts four-character alphanumeric access codes and restores share-ID
+  hyphens that WordPress rendered as en dashes (`--`) or em dashes (`---`).
 - Opens Baidu Pan in the current tab with the access code in the `?pwd=`
   parameter.
 - Displays the page title and copies `<title>.mp4` when the title (or Enter/Space
@@ -61,7 +62,7 @@ The script does not send data to third parties. It requests only
 
 Release artifacts are stored in `dist/`:
 
-- `wckbot-baidu-pan-quicklink-v1.0.10.zip`
+- `wckbot-baidu-pan-quicklink-v1.0.11.zip`
 - `wckbot-baidu-pan-quicklink.user.js`
 - `SHA256SUMS`
 

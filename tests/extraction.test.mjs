@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 const LINK_CODE_RE =
-    /(https?:\/\/pan\.baidu\.com\/s\/[A-Za-z0-9_\-\u2013]+)[\s\S]*?(?:提取码|密码)[:：]?\s*([A-Za-z0-9×✕✖]{4})/i;
+    /(https?:\/\/pan\.baidu\.com\/s\/[A-Za-z0-9_\-\u2013\u2014]+)[\s\S]*?(?:提取码|密码)[:：]?\s*([A-Za-z0-9×✕✖]{4})/i;
 
 function htmlDecode(text) {
     return text.replace(/&#(\d+);/g, (_, value) =>
@@ -22,7 +22,8 @@ function normalizeCode(code) {
 function normalizePanUrl(url) {
     return url
         .replace(/^http:/i, 'https:')
-        .replace(/\u2013/g, '-');
+        .replace(/\u2014/g, '---')
+        .replace(/\u2013/g, '--');
 }
 
 function extractFromText(text) {
@@ -84,12 +85,32 @@ test('uses the canonical href when displayed en dash represents two hyphens', ()
     });
 });
 
-test('retains the single-hyphen fallback when no anchor exists', () => {
+test('maps an en dash back to two hyphens when no anchor exists', () => {
     const card = makeCard(
-        '链接：https://pan.baidu.com/s/1uy-Ck0oRL&#8211;GprGAV-vi9w 提取码: x9ud');
+        '链接： https://pan.baidu.com/s/13mRV9TZ3jtxJf7P8Z&#8211;DPQ <br />提取码: b5ex <br />解压成功后后缀加上.mp4即可播放！');
 
     assert.deepEqual(extractFromCard(card), {
-        url: 'https://pan.baidu.com/s/1uy-Ck0oRL-GprGAV-vi9w',
+        url: 'https://pan.baidu.com/s/13mRV9TZ3jtxJf7P8Z--DPQ',
+        code: 'b5ex',
+    });
+});
+
+test('maps an en dash back to two hyphens in the meta description', () => {
+    const extracted = extractFromText(
+        '720*1280 时长：55:01 隐藏内容 链接： https://pan.baidu.com/s/13mRV9TZ3jtxJf7P8Z&#8211;DPQ 提取码: b5ex 解压成功后后缀加上.mp4即可播放！');
+
+    assert.deepEqual(extracted, {
+        url: 'https://pan.baidu.com/s/13mRV9TZ3jtxJf7P8Z--DPQ',
+        code: 'b5ex',
+    });
+});
+
+test('keeps single hyphens and maps an em dash back to three hyphens', () => {
+    const extracted = extractFromText(
+        '链接：https://pan.baidu.com/s/1uy-Ck0oRL&#8212;GprGAV-vi9w 提取码: x9ud');
+
+    assert.deepEqual(extracted, {
+        url: 'https://pan.baidu.com/s/1uy-Ck0oRL---GprGAV-vi9w',
         code: 'x9ud',
     });
 });
@@ -100,7 +121,7 @@ test('rejects a canonical href outside the Baidu share path', () => {
         'https://example.com/s/attacker');
 
     assert.deepEqual(extractFromCard(card), {
-        url: 'https://pan.baidu.com/s/1uy-Ck0oRL-GprGAV-vi9w',
+        url: 'https://pan.baidu.com/s/1uy-Ck0oRL--GprGAV-vi9w',
         code: 'x9ud',
     });
 });
